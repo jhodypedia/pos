@@ -1,0 +1,42 @@
+<% layout('layout') -%>
+<h3>Pengaturan</h3>
+<form method="post" action="/adm/settings" class="mb-3">
+  <div class="mb-2"><label>Nama Toko</label><input class="form-control" name="store_name" value="<%= settings.store_name || '' %>"></div>
+  <div class="mb-2"><label>Midtrans Server Key</label><input class="form-control" name="midtrans_server_key" value="<%= settings.midtrans_server_key || '' %>"></div>
+  <div class="mb-2"><label>Midtrans Client Key</label><input class="form-control" name="midtrans_client_key" value="<%= settings.midtrans_client_key || '' %>"></div>
+  <div class="mb-2"><label>Midtrans Is Production (true/false)</label><input class="form-control" name="midtrans_is_production" value="<%= settings.midtrans_is_production || 'false' %>"></div>
+  <hr>
+  <div class="mb-2"><label>WA Admin Numbers (CSV)</label><input class="form-control" name="wa_admin_numbers" value="<%= settings.wa_admin_numbers || '' %>"></div>
+  <hr>
+  <div class="mb-2"><label>Printer Enabled (true/false)</label><input class="form-control" name="printer_enabled" value="<%= settings.printer_enabled || 'false' %>"></div>
+  <div class="mb-2"><label>Printer Host</label><input class="form-control" name="printer_host" value="<%= settings.printer_host || '' %>"></div>
+  <div class="mb-2"><label>Printer Port</label><input class="form-control" name="printer_port" value="<%= settings.printer_port || '9100' %>"></div>
+  <hr>
+  <div class="mb-2"><label>Expense Total (angka)</label><input class="form-control" name="expense_total" value="<%= settings.expense_total || '0' %>"></div>
+  <button class="btn btn-primary">Simpan Pengaturan</button>
+</form>
+
+<h4>WhatsApp Login</h4>
+<div id="waBox">
+  <div id="waStatus" class="mb-2"></div>
+  <div id="waQrArea"></div>
+  <button id="btnWaLogin" class="btn btn-success">Start WhatsApp Login</button>
+  <button id="btnWaCheck" class="btn btn-secondary">Cek Status</button>
+</div>
+
+<script>
+$('#btnWaLogin').click(async function(){
+  $('#waQrArea').html('Menyiapkan login WA...');
+  try {
+    const res = await fetch('/adm/wa/login'); const j = await res.json();
+    if (!j.ok) return $('#waQrArea').html(`<div class="alert alert-danger">${j.error}</div>`);
+    if (j.qr) $('#waQrArea').html(`<img src="${j.qr}" style="max-width:260px">`);
+    else $('#waQrArea').html('<div class="alert alert-info">QR tidak tersedia</div>');
+  } catch(e){ $('#waQrArea').html('<div class="alert alert-danger">Gagal</div>'); }
+});
+
+$('#btnWaCheck').click(async function(){
+  const res = await fetch('/adm/wa/status'); const j = await res.json();
+  $('#waStatus').text(j.ready ? 'WA connected' : 'WA not connected');
+});
+</script>
