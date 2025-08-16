@@ -1,0 +1,13 @@
+<% layout('layout') -%>
+<h3>Order <%= order.order_id %></h3>
+<p>Status: <strong id="ordStatus"><%= order.status %></strong></p>
+<p>Total: Rp <%= order.gross_amount.toLocaleString('id-ID') %></p>
+<p>WA Pelanggan: <%= order.customer_phone || '-' %></p>
+<table class="table">
+  <thead><tr><th>Item</th><th>Qty</th><th>Harga</th><th>Sub</th></tr></thead>
+  <tbody>
+    <% items.forEach(i=>{ %>
+      <tr><td><%= i.name %></td><td><%= i.qty %></td><td>Rp <%= i.price.toLocaleString('id-ID') %></td><td>Rp <%= (i.qty * i.price).toLocaleString('id-ID') %></td></tr>
+    <% }) %>
+  </tbody>
+</table>
