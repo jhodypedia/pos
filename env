@@ -1,0 +1,10 @@
+PORT=3000
+APP_URL=http://localhost:3000
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=posuser
+DB_PASS=pospass
+DB_NAME=posdb
+
+SESSION_SECRET=please_change_this_secret
