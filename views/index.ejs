@@ -1,0 +1,40 @@
+<% layout('layout') -%>
+<h2 class="mb-3">Produk</h2>
+<div class="row" id="productList">
+  <% products.forEach(p => { %>
+    <div class="col-12 col-sm-6 col-md-4 mb-3">
+      <div class="card h-100">
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title"><%= p.name %></h5>
+          <p class="card-text mb-1">Rp <%= p.price.toLocaleString('id-ID') %></p>
+          <p class="text-muted small mb-2">Stok: <%= p.stock %></p>
+          <div class="mt-auto d-flex gap-2">
+            <input class="form-control form-control-sm qty-input" data-id="<%= p.id %>" type="number" value="1" min="1" style="width:80px">
+            <button class="btn btn-primary btn-add" data-id="<%= p.id %>" data-name="<%= p.name %>" data-price="<%= p.price %>">Tambah</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% }) %>
+</div>
+
+<h3 class="mt-4">Keranjang</h3>
+<table class="table table-sm" id="cartTbl">
+  <thead><tr><th>Item</th><th>Qty</th><th>Harga</th><th>Sub</th><th></th></tr></thead>
+  <tbody></tbody>
+</table>
+<p><strong>Total: Rp <span id="totalAmount">0</span></strong></p>
+
+<div class="row g-2 mb-3">
+  <div class="col-md-6"><input id="custName" class="form-control" placeholder="Nama pelanggan (opsional)"></div>
+  <div class="col-md-6"><input id="custPhone" class="form-control" placeholder="Nomor WhatsApp: 08xxx atau 628xxx"></div>
+</div>
+
+<button id="createOrder" class="btn btn-success">Buat Order & Tampilkan QRIS</button>
+
+<div id="qrWrap" class="mt-4" style="display:none;">
+  <h5>Scan QRIS untuk Bayar</h5>
+  <div id="qrHolder"></div>
+  <p>Link order publik: <a id="orderLink" target="_blank"></a></p>
+  <p>Status: <span id="orderStatus">PENDING</span></p>
+</div>
