@@ -1,14 +1,17 @@
-
 <h3>Manajemen Produk</h3>
-<div class="mb-2">
+<div class="mb-2 d-flex gap-2">
   <button id="btnNew" class="btn btn-success">Tambah Produk</button>
   <a class="btn btn-secondary" href="/adm">Kembali</a>
 </div>
 
-<table id="tblProducts" class="table table-striped dt-responsive nowrap" style="width:100%">
-  <thead><tr><th>id</th><th>sku</th><th>name</th><th>price</th><th>stock</th><th>active</th><th>aksi</th></tr></thead>
-  <tbody></tbody>
-</table>
+<div class="card p-3">
+  <table id="tblProducts" class="table table-striped dt-responsive nowrap" style="width:100%">
+    <thead>
+      <tr><th>id</th><th>sku</th><th>name</th><th>price</th><th>stock</th><th>active</th><th>aksi</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
 <!-- modal -->
 <div class="modal fade" id="modalProd" tabindex="-1"><div class="modal-dialog">
@@ -25,32 +28,3 @@
     <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Batal</button><button class="btn btn-primary" type="submit">Simpan</button></div>
   </form>
 </div></div>
-
-<script>
-$(function(){
-  const table = $('#tblProducts').DataTable({
-    processing:true, serverSide:true, responsive:true, ajax:{url:'/adm/api/products', type:'POST'},
-    columns:[
-      {data:'id'}, {data:'sku'}, {data:'name'}, {data:'price'}, {data:'stock'}, {data:'active', render:d=>d==1?'Ya':'Tidak'},
-      {data:null, orderable:false, render: d=>`<button class="btn btn-sm btn-primary edit" data-id="${d.id}">Edit</button> <button class="btn btn-sm btn-danger del" data-id="${d.id}">Hapus</button>`}
-    ],
-    pageLength:10, lengthMenu:[10,25,50,100]
-  });
-
-  $('#btnNew').click(()=>{ $('#formProd')[0].reset(); $('#prodId').val(''); $('#active').prop('checked',true); new bootstrap.Modal(document.getElementById('modalProd')).show(); });
-
-  $('#formProd').submit(async function(e){ e.preventDefault();
-    const id = $('#prodId').val();
-    const payload = { id, sku: $('#sku').val(), name: $('#name').val(), price: $('#price').val(), stock: $('#stock').val(), active: $('#active').is(':checked')?1:0 };
-    const url = id ? '/adm/api/products/update' : '/adm/api/products/create';
-    const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    const j = await res.json();
-    if (!j.ok) { toastr.error(j.error||'Gagal'); return; }
-    toastr.success('Tersimpan'); bootstrap.Modal.getInstance(document.getElementById('modalProd')).hide(); table.ajax.reload(null,false);
-  });
-
-  $('#tblProducts').on('click','.edit', function(){ const id = $(this).data('id'); const row = table.rows().data().toArray().find(r=>r.id==id); if (!row) return toastr.error('Data tidak ditemukan'); $('#prodId').val(row.id); $('#sku').val(row.sku); $('#name').val(row.name); $('#price').val(row.price); $('#stock').val(row.stock); $('#active').prop('checked',row.active==1); new bootstrap.Modal(document.getElementById('modalProd')).show(); });
-
-  $('#tblProducts').on('click','.del', function(){ const id = $(this).data('id'); if (!confirm('Hapus produk ini?')) return; fetch('/adm/api/products/delete',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({id})}).then(r=>r.json()).then(j=>{ if (j.ok) { toastr.success('Terhapus'); table.ajax.reload(null,false); } else toastr.error(j.error||'Gagal'); }).catch(()=>toastr.error('Server error')); });
-});
-</script>
