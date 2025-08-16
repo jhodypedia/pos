@@ -1,9 +1,9 @@
 // services/whatsapp.js
 import baileys, {
-    useMultiFileAuthState,
-    fetchLatestBaileysVersion,
-    DisconnectReason
-} from '@whiskeysockets/baileys';
+  useMultiFileAuthState,
+  fetchLatestBaileysVersion,
+  DisconnectReason
+} from "@whiskeysockets/baileys";
 const { makeWASocket } = baileys;
 import pino from "pino";
 import qrcode from "qrcode";
@@ -25,7 +25,6 @@ export async function startWALogin() {
     logger: pino({ level: "silent" })
   });
 
-  // simpan creds
   sock.ev.on("creds.update", saveCreds);
 
   sock.ev.on("connection.update", async (update) => {
@@ -46,13 +45,14 @@ export async function startWALogin() {
       ready = false;
       waEvents.emit("ready", false);
 
-      // cek apakah harus reconnect
       const shouldReconnect =
         lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
 
+      console.log("❌ WhatsApp disconnected", lastDisconnect?.error);
+
       if (shouldReconnect) {
-        console.log("🔄 Reconnecting WA...");
-        setTimeout(() => startWALogin(), 3000); // auto reconnect 3 detik
+        console.log("🔄 Reconnecting WhatsApp...");
+        setTimeout(() => startWALogin(), 5000); // auto-reconnect
       } else {
         console.log("❌ Logged out from WhatsApp, please scan again.");
       }
@@ -65,11 +65,9 @@ export async function startWALogin() {
 export function onWAEvent(name, cb) {
   waEvents.on(name, cb);
 }
-
 export function getCurrentQrDataUrl() {
   return currentQr;
 }
-
 export function isWAReady() {
   return ready;
 }
