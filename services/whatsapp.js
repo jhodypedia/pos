@@ -1,5 +1,5 @@
 // services/whatsapp.js
-import makeWASocket, { useMultiFileAuthState } from "baileys";
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } = require("@whiskeysockets/baileys");
 import qrcode from "qrcode";
 import { EventEmitter } from "events";
 
