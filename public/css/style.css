@@ -1,4 +1,226 @@
-body { background: #f8f9fa; }
-.card { border-radius: 8px; }
-footer { font-size: .9rem; }
-#qrWrap img, #qrHolder canvas { border:1px solid #ddd; padding:8px; background:white; }
+/* =========================================================
+   POS Web — Full responsive stylesheet
+   - Untuk project POS QRIS (store + admin)
+   - Covers: layout, header, footer, cards, forms,
+     cart, QR area, tables, datatables, modals, admin widgets,
+     charts, toast overrides, responsive breakpoints.
+   ========================================================= */
+
+/* ========== Variables / Base ========== */
+:root{
+  --bg: #f8f9fa;
+  --primary: #0d6efd;
+  --primary-600: #0b5ed7;
+  --success: #198754;
+  --danger: #dc3545;
+  --muted: #6c757d;
+  --card-bg: #ffffff;
+  --shadow-sm: 0 1px 2px rgba(16,24,40,0.04);
+  --shadow-md: 0 6px 18px rgba(16,24,40,0.08);
+  --radius: 10px;
+  --max-content-width: 1200px;
+  --nav-height: 64px;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* Base */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:var(--font-sans);
+  background:var(--bg);
+  color:#212529;
+  margin:0;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  line-height:1.45;
+  font-size:15px;
+}
+
+/* container constraints */
+.container {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* ========== Header / Navbar ========== */
+.navbar{
+  min-height: var(--nav-height);
+  box-shadow: var(--shadow-sm);
+}
+.navbar-brand{
+  font-weight:700;
+  letter-spacing:0.2px;
+}
+.nav-link{color:#e9ecef}
+.nav-link:hover{color:#fff}
+
+/* mobile tweak */
+@media (max-width:576px){
+  .navbar-brand{font-size:1rem}
+}
+
+/* ========== Cards ========== */
+.card{
+  border: none;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.card:hover{ transform: translateY(-4px); box-shadow: var(--shadow-md); }
+
+/* card header small */
+.card .card-title { margin-bottom:.5rem; font-weight:600; }
+
+/* ========== Buttons ========= */
+.btn-primary{
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.btn-primary:hover{ background: var(--primary-600); border-color: var(--primary-600); }
+.btn-outline-secondary{ border-radius:8px; }
+
+/* small btns */
+.btn-sm{ padding:.25rem .5rem; font-size:.85rem; }
+
+/* ========== Product Grid (store) ========== */
+#productList{ margin:-0.75rem; display:flex; flex-wrap:wrap; gap:1rem; }
+#productList .card{ height:100%; display:flex; flex-direction:column; justify-content:space-between; padding:0; }
+#productList .card .card-body{ padding:1rem; }
+.qty-input{ width:80px; }
+
+/* ========== Cart Table ========== */
+#cartTbl { background:#fff; border-radius:8px; box-shadow:var(--shadow-sm); overflow:hidden; }
+#cartTbl thead th { background:#f1f3f5; font-weight:600; }
+#cartTbl td, #cartTbl th { vertical-align:middle; padding:.5rem .75rem; }
+
+/* total area */
+#totalAmount{ font-size:1.15rem; color:#0b5ed7; font-weight:700; }
+
+/* ========== QR area ========== */
+#qrWrap{ background:linear-gradient(180deg,#ffffff, #fbfdff); border-radius:10px; padding:1rem; box-shadow:var(--shadow-sm); }
+#qrHolder, #qrHolder canvas, #qrHolder img { display:block; margin:0 auto; max-width:320px; }
+#qrHolder canvas{ margin:auto; border-radius:6px; border:1px solid #eee; padding:6px; background:#fff; }
+#orderLink{ word-break:break-all; display:inline-block; margin-top:.5rem; }
+
+/* small screens QR adjustments */
+@media (max-width:420px){
+  #qrHolder canvas, #qrHolder img { max-width:220px; }
+  #productList .card { min-height: 160px; }
+}
+
+/* ========== Forms ========== */
+input.form-control, select.form-control, textarea.form-control {
+  border-radius: 8px;
+  height: calc(2.15rem + 10px);
+  padding: .45rem .6rem;
+  border: 1px solid #e9ecef;
+  transition: box-shadow .12s, border-color .12s;
+}
+input.form-control:focus, textarea.form-control:focus {
+  box-shadow: 0 6px 18px rgba(13,110,253,0.06);
+  border-color: var(--primary-600);
+  outline: none;
+}
+
+/* ========== Admin Widgets ========== */
+.admin-stats .card { padding:1rem; text-align:center; }
+.admin-stats h6{ color:var(--muted); margin-bottom:.25rem; }
+.admin-stats h4{ margin:0; font-weight:700; font-size:1.55rem; }
+
+/* charts container responsive */
+.canvas-wrap{ width:100%; min-height:200px; position:relative; }
+
+/* ========== DataTables tweaks ========= */
+/* make DataTables responsive and fit to card */
+.dataTables_wrapper .dataTables_paginate .paginate_button { border-radius:6px; padding:.25rem .5rem; }
+.table.dataTable td, .table.dataTable th { white-space: nowrap; }
+.table.dataTable { border-collapse:separate; border-spacing:0; }
+.table thead th { font-weight:600; }
+
+/* responsive helpers for small screens */
+@media (max-width:768px){
+  .table-responsive { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .dataTables_wrapper .dataTables_filter { float:none; text-align:left; margin-bottom:.5rem; }
+}
+
+/* ========== Modals ========= */
+.modal-content { border-radius:12px; overflow:hidden; }
+.modal-header { border-bottom: none; padding-bottom:.75rem; }
+.modal-footer { border-top: none; padding-top:.75rem; }
+
+/* ========== Users & Products SPA ========= */
+#tblProducts_wrapper, #tblUsers_wrapper { background:#fff; padding:1rem; border-radius:10px; box-shadow:var(--shadow-sm); }
+#tblProducts thead th, #tblUsers thead th { background:#f8f9fa; }
+
+/* action buttons cell */
+.table .btn { margin-right:.25rem; }
+
+/* ========== Admin Settings form ========= */
+.adm-settings .form-control { margin-bottom:.5rem; }
+
+/* ========== Header store name override (layout) ========= */
+.brand-small { display:flex; align-items:center; gap:.5rem; }
+.brand-small .store-name { font-weight:700; font-size:1rem; color:#fff }
+
+/* ========== Footer ========= */
+footer {
+  background: transparent;
+  padding: .9rem 0;
+  color: var(--muted);
+  font-size: .92rem;
+  text-align:center;
+}
+
+/* ========== Toastr tweaks ========= */
+.toast-top-right { top: 90px !important; right: 16px !important; }
+.toast { border-radius: 8px; font-size: .95rem; }
+
+/* ========== Utility helpers ========= */
+.text-muted-sm { color: #8a8f98; font-size:.88rem; }
+.hint { font-size:.88rem; color:var(--muted) }
+.small-btn { padding:.3rem .5rem; font-size:.85rem; border-radius:6px; }
+
+/* ========== Responsive Layout specifics (grid adjustments) ========= */
+@media (min-width: 992px) {
+  .product-grid-3 { display:grid; grid-template-columns: repeat(3,1fr); gap:1rem; }
+}
+@media (min-width: 1200px) {
+  .container { max-width: 1200px; }
+}
+
+/* ========== Order view / print-friendly ========= */
+@media print {
+  body { background:#fff; color:#000; }
+  nav, .btn, .no-print, footer { display:none !important; }
+  .card { box-shadow:none; border:none; }
+  #cartTbl, table { width:100%; font-size:12px; }
+}
+
+/* ========== Accessibility ========= */
+a:focus, button:focus, input:focus { outline: 3px solid rgba(13,110,253,0.12); outline-offset: 2px; }
+
+/* ========== Small UX details ========= */
+.empty-state { border:2px dashed #e9ecef; padding:2rem; border-radius:10px; text-align:center; color:var(--muted); }
+.badge-pill { padding: .35rem .6rem; border-radius: 999px; font-size:.85rem; }
+
+/* ========== QR & canvas fallback ========= */
+.canvas-fallback { display:flex; align-items:center; justify-content:center; height:320px; border-radius:8px; background:#fff; box-shadow:var(--shadow-sm); }
+
+/* ========== Mobile optimizations ========= */
+@media (max-width:576px){
+  .card { border-radius: 8px; }
+  .container { padding-left: .75rem; padding-right: .75rem; }
+  #productList .card { min-height:180px; }
+  .admin-stats .card { padding: .75rem; }
+  .navbar .nav-link { font-size:.9rem; }
+  .modal-dialog { margin: 1.25rem; }
+}
+
+/* ========== Helper classes to override specific colors ========== */
+.text-primary-strong { color: var(--primary-600) !important; font-weight:700; }
+.bg-soft { background:#fbfdff; border-radius:8px; padding: .6rem; }
+
+/* ========== End of stylesheet ========== */
