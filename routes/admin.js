@@ -98,7 +98,14 @@ admin.get('/adm/wa/login', requireAdmin, async (req, res) => {
     return res.status(500).json({ ok: false, error: e.message });
   }
 });
-admin.get('/adm/wa/status', requireAdmin, (req, res) => res.json({ ok: true, ready: isWAReady() }));
+// --- WA Status ---
+admin.get("/adm/wa/status", requireAdmin, (req, res) => {
+  return res.json({
+    ok: true,
+    ready: isWAReady(),
+    qr: getCurrentQrDataUrl() || null
+  });
+});
 
 // --- Products SPA (DataTables server-side) ---
 admin.get('/adm/products', requireAdmin, (req, res) => res.render('adm_products'));
