@@ -1,0 +1,41 @@
+<% layout('layout') -%>
+<h3>Admin Dashboard</h3>
+<div class="mb-3">
+  <a class="btn btn-outline-primary" href="/adm/products">Produk</a>
+  <a class="btn btn-outline-secondary" href="/adm/users">Users</a>
+  <a class="btn btn-outline-info" href="/adm/settings">Pengaturan</a>
+  <a class="btn btn-outline-danger" href="/adm/logout">Logout</a>
+</div>
+
+<div class="row mb-3">
+  <div class="col-md-4">
+    <div class="card p-3"><h6>Pemasukan (Rp)</h6><h4 id="incomeNum">-</h4></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3"><h6>Pengeluaran (Rp)</h6><h4 id="expenseNum">-</h4></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3"><h6>Jumlah Order</h6><h4 id="ordersNum">-</h4></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body"><h5>Grafik Pemasukan vs Pengeluaran</h5><canvas id="incomeChart" height="100"></canvas></div>
+</div>
+
+<script>
+async function loadDashboard(){
+  const res = await fetch('/adm/api/dashboard-stats'); const j = await res.json();
+  $('#incomeNum').text((j.income||0).toLocaleString('id-ID'));
+  $('#expenseNum').text((j.expense||0).toLocaleString('id-ID'));
+  $('#ordersNum').text((j.orders||0));
+  const ctx = document.getElementById('incomeChart');
+  if (window._incomeChart) window._incomeChart.destroy();
+  window._incomeChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: ['Pemasukan','Pengeluaran'], datasets:[{ label:'Rupiah', data:[j.income||0, j.expense||0], backgroundColor:['#198754','#dc3545'] }] },
+    options: { responsive:true, maintainAspectRatio:false }
+  });
+}
+loadDashboard(); setInterval(loadDashboard,10000);
+</script>
