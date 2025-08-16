@@ -1,5 +1,5 @@
 // services/whatsapp.js
-import makeWASocket, { useMultiFileAuthState } from "@adiwajshing/baileys";
+import makeWASocket, { useMultiFileAuthState } from "baileys";
 import qrcode from "qrcode";
 import { EventEmitter } from "events";
 
