@@ -1,14 +1,17 @@
-
 <h3>Manajemen Users</h3>
-<div class="mb-2">
+<div class="mb-2 d-flex gap-2">
   <button id="btnNewUser" class="btn btn-success">Tambah User</button>
   <a class="btn btn-secondary" href="/adm">Kembali</a>
 </div>
 
-<table id="tblUsers" class="table table-striped dt-responsive nowrap" style="width:100%">
-  <thead><tr><th>id</th><th>username</th><th>role</th><th>created_at</th><th>aksi</th></tr></thead><tbody></tbody>
-</table>
+<div class="card p-3">
+  <table id="tblUsers" class="table table-striped dt-responsive nowrap" style="width:100%">
+    <thead><tr><th>id</th><th>username</th><th>role</th><th>created_at</th><th>aksi</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
 
+<!-- modal -->
 <div class="modal fade" id="modalUser" tabindex="-1"><div class="modal-dialog">
   <form id="formUser" class="modal-content">
     <div class="modal-header"><h5 class="modal-title">User</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -21,28 +24,3 @@
     <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Batal</button><button class="btn btn-primary" type="submit">Simpan</button></div>
   </form>
 </div></div>
-
-<script>
-$(function(){
-  const table = $('#tblUsers').DataTable({
-    processing:true, serverSide:true, responsive:true, ajax:{url:'/adm/api/users', type:'POST'},
-    columns:[{data:'id'},{data:'username'},{data:'role'},{data:'created_at'},{data:null, orderable:false, render: d=>`<button class="btn btn-sm btn-primary editU" data-id="${d.id}">Edit</button> <button class="btn btn-sm btn-danger delU" data-id="${d.id}">Hapus</button>`}]
-  });
-
-  $('#btnNewUser').click(()=>{ $('#formUser')[0].reset(); $('#userId').val(''); new bootstrap.Modal(document.getElementById('modalUser')).show(); });
-
-  $('#formUser').submit(async function(e){ e.preventDefault();
-    const id = $('#userId').val();
-    const payload = { id, username: $('#userUsername').val(), password: $('#userPassword').val(), role: $('#userRole').val() };
-    const url = id ? '/adm/api/users/update' : '/adm/api/users/create';
-    const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    const j = await res.json();
-    if (!j.ok) return toastr.error(j.error||'Gagal');
-    toastr.success('Tersimpan'); bootstrap.Modal.getInstance(document.getElementById('modalUser')).hide(); table.ajax.reload(null,false);
-  });
-
-  $('#tblUsers').on('click','.editU', function(){ const id = $(this).data('id'); const row = table.rows().data().toArray().find(r=>r.id==id); if (!row) return toastr.error('Data tidak ditemukan'); $('#userId').val(row.id); $('#userUsername').val(row.username); $('#userRole').val(row.role); $('#userPassword').val(''); new bootstrap.Modal(document.getElementById('modalUser')).show(); });
-
-  $('#tblUsers').on('click','.delU', function(){ const id = $(this).data('id'); if (!confirm('Hapus user ini?')) return; fetch('/adm/api/users/delete',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({id})}).then(r=>r.json()).then(j=>{ if (j.ok) { toastr.success('Terhapus'); table.ajax.reload(null,false); } else toastr.error(j.error||'Gagal'); }).catch(()=>toastr.error('Server error')); });
-});
-</script>
