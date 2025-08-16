@@ -60,19 +60,41 @@ admin.post('/adm/settings', requireAdmin, async (req, res) => {
 });
 
 // --- WA Login ---
+// --- WA Login ---
 admin.get('/adm/wa/login', requireAdmin, async (req, res) => {
   try {
+    // kalau sudah ready, balikin status langsung
+    if (isWAReady()) {
+      return res.json({ ok: true, ready: true, message: "WhatsApp sudah terhubung" });
+    }
+
+    // mulai login
     await startWALogin();
+
+    // kalau ada QR tersimpan, kirim langsung
     const qr = getCurrentQrDataUrl();
-    if (qr) return res.json({ ok: true, qr });
+    if (qr) {
+      return res.json({ ok: true, qr });
+    }
+
+    // kalau belum ada, tunggu sampai ada event QR
     const qrPromise = new Promise((resolve, reject) => {
-      const to = setTimeout(() => { reject(new Error('QR timeout')); }, 15000);
-      const handler = (data) => { clearTimeout(to); resolve(data); };
-      onWAEvent('qr', handler);
+      const timeout = setTimeout(() => reject(new Error("QR timeout")), 20000);
+
+      const handler = (data) => {
+        clearTimeout(timeout);
+        resolve(data);
+      };
+
+      // ✅ pakai once biar nggak numpuk listener
+      onWAEvent("qr", handler);
     });
+
     const dataUrl = await qrPromise;
     return res.json({ ok: true, qr: dataUrl });
+
   } catch (e) {
+    console.error("WA Login Error:", e);
     return res.status(500).json({ ok: false, error: e.message });
   }
 });
