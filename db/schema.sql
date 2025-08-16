@@ -1,0 +1,60 @@
+CREATE DATABASE IF NOT EXISTS posdb CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE posdb;
+
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(80) UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('admin','cashier') DEFAULT 'cashier',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS settings (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  key_name VARCHAR(100) UNIQUE,
+  value TEXT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS products (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  sku VARCHAR(50) UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  price INT NOT NULL,
+  stock INT DEFAULT 0,
+  active TINYINT(1) DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id VARCHAR(50) UNIQUE NOT NULL,
+  customer_name VARCHAR(120),
+  customer_phone VARCHAR(30),
+  status ENUM('PENDING','PAID','CANCEL','EXPIRE') DEFAULT 'PENDING',
+  gross_amount INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  paid_at TIMESTAMP NULL
+);
+
+CREATE INDEX idx_orders_custphone ON orders(customer_phone);
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id_ref INT NOT NULL,
+  product_id INT NOT NULL,
+  qty INT NOT NULL,
+  price INT NOT NULL,
+  FOREIGN KEY (order_id_ref) REFERENCES orders(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id VARCHAR(50) NOT NULL,
+  payment_type VARCHAR(50),
+  transaction_status VARCHAR(50),
+  transaction_id VARCHAR(100),
+  fraud_status VARCHAR(50),
+  raw_json JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
