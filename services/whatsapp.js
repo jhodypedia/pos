@@ -22,23 +22,40 @@ export async function startWALogin() {
     version,
     auth: state,
     printQRInTerminal: false,
-    logger: pino({ level: "silent" }) // ✅ pakai pino
+    logger: pino({ level: "silent" })
   });
 
+  // simpan creds
   sock.ev.on("creds.update", saveCreds);
+
   sock.ev.on("connection.update", async (update) => {
-    if (update.qr) {
-      currentQr = await qrcode.toDataURL(update.qr);
+    const { connection, lastDisconnect, qr } = update;
+
+    if (qr) {
+      currentQr = await qrcode.toDataURL(qr);
       waEvents.emit("qr", currentQr);
     }
-    if (update.connection === "open") {
+
+    if (connection === "open") {
       ready = true;
       currentQr = null;
       waEvents.emit("ready", true);
     }
-    if (update.connection === "close") {
+
+    if (connection === "close") {
       ready = false;
       waEvents.emit("ready", false);
+
+      // cek apakah harus reconnect
+      const shouldReconnect =
+        lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+
+      if (shouldReconnect) {
+        console.log("🔄 Reconnecting WA...");
+        setTimeout(() => startWALogin(), 3000); // auto reconnect 3 detik
+      } else {
+        console.log("❌ Logged out from WhatsApp, please scan again.");
+      }
     }
   });
 
@@ -48,9 +65,11 @@ export async function startWALogin() {
 export function onWAEvent(name, cb) {
   waEvents.on(name, cb);
 }
+
 export function getCurrentQrDataUrl() {
   return currentQr;
 }
+
 export function isWAReady() {
   return ready;
 }
