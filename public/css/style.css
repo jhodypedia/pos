@@ -1,0 +1,4 @@
+body { background: #f8f9fa; }
+.card { border-radius: 8px; }
+footer { font-size: .9rem; }
+#qrWrap img, #qrHolder canvas { border:1px solid #ddd; padding:8px; background:white; }
