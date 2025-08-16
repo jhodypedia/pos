@@ -1,6 +1,10 @@
 // public/js/app.js
 /* Single app.js for Public + Admin behaviour
-   - Ensure this file is loaded last (after jQuery, Bootstrap, DataTables)
+   - Ensure this file is loaded last (after jQuery, Bootstrap, DataTables, QRCode, Chart.js, Toastr)
+   - Contains:
+     * Public SPA: product grid, cart, checkout (AJAX), show QR, polling order status, restore QR from localStorage
+     * Order view: polling & QR rendering (if server provided qrUrl or use localStorage)
+     * Admin: dashboard charts, products/users DataTables + CRUD, WA login handlers
 */
 
 (function($){
@@ -8,6 +12,9 @@
 
   // small helper
   function money(v){ return Number(v||0).toLocaleString('id-ID'); }
+
+  // safe element getter
+  function $id(sel){ return document.getElementById(sel); }
 
   $(document).ready(function(){
 
@@ -20,7 +27,8 @@
       toastr.options.positionClass = "toast-top-right";
     }
 
-    // ---------- Public store: cart & order ----------
+    // ---------- PUBLIC SPA: cart & order ----------
+    // cart is array of { product_id, name, price, qty }
     const cart = [];
 
     function renderCart(){
@@ -31,41 +39,46 @@
       cart.forEach((c,i)=>{
         const sub = c.qty * c.price;
         total += sub;
-        const $tr = $(`<tr>
-          <td>${c.name}</td>
-          <td>${c.qty}</td>
-          <td>Rp ${money(c.price)}</td>
-          <td>Rp ${money(sub)}</td>
-          <td><button class="btn btn-sm btn-danger rem" data-i="${i}">Hapus</button></td>
-        </tr>`);
+        const $tr = $(`
+          <tr>
+            <td class="align-middle">${escapeHtml(c.name)}</td>
+            <td class="align-middle text-center">${c.qty}</td>
+            <td class="align-middle">Rp ${money(c.price)}</td>
+            <td class="align-middle">Rp ${money(sub)}</td>
+            <td class="align-middle text-center"><button class="btn btn-sm btn-danger rem" data-i="${i}">Hapus</button></td>
+          </tr>
+        `);
         $tb.append($tr);
       });
       $('#totalAmount').text(money(total));
     }
 
-    // delegate add buttons
+    // escape for safe html injection
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; }); }
+
+    // Delegate add buttons (works for dynamic content)
     $(document).on('click', '.btn-add', function(e){
       e.preventDefault();
       const id = $(this).data('id');
       const name = $(this).data('name');
-      const price = parseInt($(this).data('price'), 10);
+      const price = parseInt($(this).data('price'), 10) || 0;
       const qEl = $(`.qty-input[data-id="${id}"]`);
       const qty = Math.max(1, parseInt(qEl.val()||1,10));
-      const ex = cart.find(x=>x.product_id == id);
+      const ex = cart.find(x=>String(x.product_id) === String(id));
       if (ex) ex.qty += qty; else cart.push({ product_id: id, name, price, qty });
       renderCart();
-      toastr.success('Ditambahkan ke keranjang');
+      if (window.toastr) toastr.success('Ditambahkan ke keranjang');
     });
 
-    // remove
+    // remove item
     $(document).on('click', '.rem', function(){
       const i = $(this).data('i');
       cart.splice(i,1);
       renderCart();
-      toastr.info('Item dihapus');
+      if (window.toastr) toastr.info('Item dihapus');
     });
 
-    // polling helper for order status
+    // polling helper for order status (used by createOrder and restore)
     async function pollOrderStatus(orderId){
       if (!orderId) return;
       try {
@@ -73,9 +86,11 @@
         if (!res.ok) return;
         const j = await res.json();
         if (j.ok) {
+          // update any present orderStatus element
           $('#orderStatus').text(j.status);
-          if (j.status === 'PAID') {
-            toastr.success('Pembayaran terkonfirmasi');
+          // unify: treat non-pending as success
+          if (j.status && j.status.toLowerCase() !== 'pending') {
+            if (window.toastr) toastr.success('Pembayaran terkonfirmasi (' + j.status + ')');
             localStorage.removeItem('qr_' + orderId);
             const intervalName = 'poll_' + orderId;
             if (window[intervalName]) clearInterval(window[intervalName]);
@@ -86,16 +101,22 @@
       }
     }
 
-    // create order (public)
+    // Create order from cart (AJAX) - SPA behaviour
     $('#createOrder').on('click', async function(){
-      if (!cart.length) { toastr.error('Keranjang kosong'); return; }
-      const customer_name = $('#custName').val();
-      const customer_phone = $('#custPhone').val();
+      if (!cart.length) { if (window.toastr) toastr.error('Keranjang kosong'); else alert('Keranjang kosong'); return; }
+
+      const customer_name = ($('#custName').length ? $('#custName').val() : '') || '';
+      const customer_phone = ($('#custPhone').length ? $('#custPhone').val() : '') || '';
+
       if (customer_phone && !/^(\+?62|0)8\d{7,12}$/.test(customer_phone)) {
-        toastr.error('Format nomor WA tidak valid. Contoh: 08xxxx atau 628xxxx');
+        if (window.toastr) toastr.error('Format nomor WA tidak valid. Contoh: 08xxxx atau 628xxxx');
+        else alert('Format nomor WA tidak valid. Contoh: 08xxxx atau 628xxxx');
         return;
       }
-      $(this).prop('disabled', true).text('Membuat...');
+
+      const $btn = $(this);
+      $btn.prop('disabled', true).text('Membuat...');
+
       try {
         const resp = await fetch('/order/create', {
           method: 'POST',
@@ -103,39 +124,64 @@
           body: JSON.stringify({ items: cart, customer_name, customer_phone })
         });
         const data = await resp.json();
-        if (!data.ok) { toastr.error(data.error || 'Gagal membuat order'); return; }
-        // show QR (client-side)
-        const qrUrl = data.qrUrl;
-        if (!qrUrl) {
-          toastr.info('QR tidak tersedia. Silakan buka halaman order publik.');
-          $('#orderLink').attr('href', '/o/' + data.order_id).text(window.location.origin + '/o/' + data.order_id);
-          $('#qrWrap').show();
-        } else {
-          $('#qrHolder').empty();
-          const $el = document.createElement('div');
-          new QRCode($el, { text: qrUrl, width: 300, height: 300 });
-          $('#qrHolder').append($el);
-          $('#orderLink').attr('href', '/o/' + data.order_id).text(window.location.origin + '/o/' + data.order_id);
-          $('#qrWrap').show();
-          $('#orderStatus').text('PENDING');
-          // save to localStorage
-          try { localStorage.setItem('qr_' + data.order_id, JSON.stringify({ qrUrl: qrUrl, created: Date.now() })); } catch(e){}
-          // start polling every 5s
-          const id = data.order_id;
-          const intervalName = 'poll_' + id;
-          window[intervalName] = setInterval(()=> pollOrderStatus(id), 5000);
-          setTimeout(()=> pollOrderStatus(id), 3000);
+        if (!data.ok) {
+          if (window.toastr) toastr.error(data.error || 'Gagal membuat order');
+          else alert(data.error || 'Gagal membuat order');
+          return;
         }
-        toastr.success('Order dibuat');
+
+        // update UI: show QR and public link
+        const qrUrl = data.qrUrl;
+        const orderId = data.order_id;
+        $('#orderLink').attr('href', '/o/' + orderId).text(window.location.origin + '/o/' + orderId);
+        $('#orderStatus').text('PENDING');
+        $('#qrWrap').show();
+
+        if (qrUrl) {
+          // render QR via QRCode lib (preferred) or display image
+          try {
+            $('#qrHolder').empty();
+            const el = document.createElement('div');
+            if (window.QRCode) {
+              new QRCode(el, { text: qrUrl, width: 300, height: 300 });
+            } else {
+              // fallback: show image URL via QR generator service
+              el.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}" alt="QRIS">`;
+            }
+            $('#qrHolder').append(el);
+          } catch(e) {
+            console.warn('QR render error', e);
+            $('#qrHolder').html(`<img src="${qrUrl}" alt="QRIS" style="max-width:300px">`);
+          }
+        } else {
+          // no QR URL returned, still show link to public order
+          $('#qrHolder').html('<div class="text-muted">QR tidak tersedia. Silakan buka link order.</div>');
+        }
+
+        // persist to localStorage so user won't lose QR on refresh
+        try { localStorage.setItem('qr_' + orderId, JSON.stringify({ qrUrl: qrUrl, created: Date.now() })); } catch(e){}
+
+        // start polling every 5s
+        const id = orderId;
+        const intervalName = 'poll_' + id;
+        if (window[intervalName]) clearInterval(window[intervalName]);
+        window[intervalName] = setInterval(()=> pollOrderStatus(id), 5000);
+        setTimeout(()=> pollOrderStatus(id), 3000);
+
+        // clear cart after creating order (UX choice)
+        cart.length = 0; renderCart();
+
+        if (window.toastr) toastr.success('Order dibuat: ' + orderId);
       } catch (e) {
         console.error(e);
-        toastr.error('Server error');
+        if (window.toastr) toastr.error('Server error');
+        else alert('Server error');
       } finally {
-        $('#createOrder').prop('disabled', false).text('Buat Order & Tampilkan QRIS');
+        $btn.prop('disabled', false).text('Buat Order & Tampilkan QRIS');
       }
     });
 
-    // restore saved QR on load
+    // restore saved QR if user returns to site
     (function restoreSavedQr(){
       try {
         for (let i=0;i<localStorage.length;i++){
@@ -144,20 +190,51 @@
           if (key.startsWith('qr_')) {
             const data = JSON.parse(localStorage.getItem(key));
             if (data && data.qrUrl) {
-              $('#qrHolder').empty();
-              const $el = document.createElement('div');
-              new QRCode($el, { text: data.qrUrl, width: 300, height: 300 });
-              $('#qrHolder').append($el);
-              const orderId = key.replace('qr_','');
-              $('#orderLink').attr('href','/o/' + orderId).text(window.location.origin + '/o/' + orderId);
-              $('#qrWrap').show();
-              $('#orderStatus').text('PENDING');
-              window['poll_' + orderId] = setInterval(()=> pollOrderStatus(orderId), 5000);
+              // show only if main page has qrHolder
+              if ($('#qrHolder').length) {
+                $('#qrHolder').empty();
+                const el = document.createElement('div');
+                if (window.QRCode) {
+                  new QRCode(el, { text: data.qrUrl, width: 300, height: 300 });
+                } else {
+                  el.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data.qrUrl)}">`;
+                }
+                $('#qrHolder').append(el);
+                const orderId = key.replace('qr_','');
+                $('#orderLink').attr('href','/o/' + orderId).text(window.location.origin + '/o/' + orderId);
+                $('#qrWrap').show();
+                $('#orderStatus').text('PENDING');
+                window['poll_' + orderId] = setInterval(()=> pollOrderStatus(orderId), 5000);
+              }
             }
           }
         }
-      } catch(e){}
+      } catch(e){ console.warn('restore QR error', e); }
     })();
+
+    // ---------- ORDER VIEW: render QR (server-provided) + polling ----------
+    // If order_view page included a server variable qrUrl via a DOM element (#qrHolder data-qr)
+    try {
+      const $qrElem = $('#qrHolder');
+      if ($qrElem.length && $qrElem.data('qr')) {
+        // server injected data-qr attribute with qrUrl
+        const suppliedQr = $qrElem.data('qr');
+        $qrElem.empty();
+        const el = document.createElement('div');
+        if (window.QRCode) new QRCode(el, { text: suppliedQr, width: 300, height: 300 });
+        else el.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(suppliedQr)}">`;
+        $qrElem.append(el);
+      }
+    } catch(e){ /* ignore */ }
+
+    // If page has orderId element for polling (order_view.ejs uses variable order.order_id into JS)
+    try {
+      if (typeof orderId !== 'undefined' && orderId) {
+        // orderId variable may be injected by view; start polling
+        setInterval(()=> pollOrderStatus(orderId), 5000);
+        pollOrderStatus(orderId);
+      }
+    } catch(e){ /* ignore */ }
 
     // ---------- ADMIN: Dashboard stats & Chart ----------
     if ($('#incomeChart').length) {
@@ -288,7 +365,7 @@
       try {
         const r = await fetch('/adm/wa/login');
         const j = await r.json();
-        if (!j.ok) { $('#waQrArea').html(`<div class="alert alert-danger">${j.error}</div>`); return; }
+        if (!j.ok) { $('#waQrArea').html(`<div class="alert alert-danger">${escapeHtml(j.error || 'Unknown')}</div>`); return; }
         if (j.qr) $('#waQrArea').html(`<img src="${j.qr}" style="max-width:260px" class="img-fluid rounded">`);
         else $('#waQrArea').html('<div class="alert alert-info">QR tidak tersedia</div>');
       } catch(e){ $('#waQrArea').html('<div class="alert alert-danger">Gagal</div>'); }
@@ -301,7 +378,7 @@
       } catch(e){ $('#waStatus').text('Error'); }
     });
 
-    // small safety: if any jQuery error occurs, show in console but keep buttons clickable
+    // small safety: if any uncaught error, show in console but keep buttons clickable
     window.addEventListener('error', function(e){ console.error('Uncaught error:', e.error || e.message || e); });
 
   }); // end ready
